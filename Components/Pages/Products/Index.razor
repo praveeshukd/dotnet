@@ -1,0 +1,124 @@
+@page "/products"
+@rendermode InteractiveServer
+@inject IProductService ProductService
+@inject NavigationManager Navigation
+
+<PageTitle>Products</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Products</h1>
+    <a class="btn btn-primary" href="products/create">Add Product</a>
+</div>
+
+<div class="row g-2 mb-3">
+    <div class="col-md-5">
+        <input class="form-control" placeholder="Search by name or description..."
+               @bind="_search" @bind:event="oninput" @onkeyup="OnSearchKeyUp" />
+    </div>
+    <div class="col-md-4">
+        <select class="form-select" @bind="_categoryId" @bind:after="LoadAsync">
+            <option value="0">All categories</option>
+            @foreach (var category in _categories)
+            {
+                <option value="@category.Id">@category.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <button class="btn btn-outline-secondary w-100" @onclick="LoadAsync">Search</button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_message))
+{
+    <div class="alert alert-info">@_message</div>
+}
+
+@if (_products is null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (_products.Count == 0)
+{
+    <p class="text-muted">No products found.</p>
+}
+else
+{
+    <table class="table table-striped table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Category</th>
+                <th class="text-end">Price</th>
+                <th class="text-end">Stock</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var product in _products)
+            {
+                <tr>
+                    <td>@product.Name</td>
+                    <td>@(product.Category?.Name ?? "-")</td>
+                    <td class="text-end">@product.Price.ToString("C")</td>
+                    <td class="text-end">@product.Stock</td>
+                    <td class="text-end text-nowrap">
+                        <a class="btn btn-sm btn-outline-secondary" href="products/details/@product.Id">Details</a>
+                        <a class="btn btn-sm btn-outline-primary" href="products/edit/@product.Id">Edit</a>
+                        <button class="btn btn-sm btn-outline-danger"
+                                @onclick="() => DeleteAsync(product.Id)"
+                                disabled="@(_deletingId == product.Id)">
+                            @(_deletingId == product.Id ? "Deleting..." : "Delete")
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IReadOnlyList<Product>? _products;
+    private IReadOnlyList<Category> _categories = [];
+    private string _search = string.Empty;
+    private int _categoryId;
+    private string? _message;
+    private int? _deletingId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _categories = await ProductService.GetCategoriesAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _products = await ProductService.GetProductsAsync(
+            string.IsNullOrWhiteSpace(_search) ? null : _search,
+            _categoryId == 0 ? null : _categoryId);
+    }
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        _deletingId = id;
+        var (success, error) = await ProductService.DeleteAsync(id);
+        _deletingId = null;
+
+        if (!success)
+        {
+            _message = error;
+            return;
+        }
+
+        _message = "Product deleted (soft delete — marked inactive).";
+        await LoadAsync();
+    }
+}

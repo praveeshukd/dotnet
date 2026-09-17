@@ -1,0 +1,110 @@
+@page "/products/edit/{Id:int}"
+@rendermode InteractiveServer
+@inject IProductService ProductService
+@inject NavigationManager Navigation
+
+<PageTitle>Edit Product</PageTitle>
+
+<h1>Edit Product</h1>
+
+@if (_notFound)
+{
+    <div class="alert alert-warning">Product not found.</div>
+    <a class="btn btn-secondary" href="products">Back</a>
+}
+else if (_product is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+
+    <EditForm Model="_product" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" />
+
+        <div class="mb-3">
+            <label class="form-label">Name</label>
+            <InputText class="form-control" @bind-Value="_product.Name" />
+            <ValidationMessage For="() => _product.Name" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Description</label>
+            <InputTextArea class="form-control" @bind-Value="_product.Description" rows="3" />
+            <ValidationMessage For="() => _product.Description" />
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Price</label>
+                <InputNumber class="form-control" @bind-Value="_product.Price" />
+                <ValidationMessage For="() => _product.Price" />
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Stock</label>
+                <InputNumber class="form-control" @bind-Value="_product.Stock" />
+                <ValidationMessage For="() => _product.Stock" />
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Category</label>
+                <InputSelect class="form-select" @bind-Value="_product.CategoryId">
+                    @foreach (var category in _categories)
+                    {
+                        <option value="@category.Id">@category.Name</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => _product.CategoryId" />
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" disabled="@_saving">
+            @(_saving ? "Saving..." : "Update")
+        </button>
+        <a class="btn btn-secondary" href="products">Cancel</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Product? _product;
+    private IReadOnlyList<Category> _categories = [];
+    private string? _error;
+    private bool _saving;
+    private bool _notFound;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _categories = await ProductService.GetCategoriesAsync();
+        _product = await ProductService.GetProductAsync(Id);
+        _notFound = _product is null;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_product is null)
+        {
+            return;
+        }
+
+        _saving = true;
+        _error = null;
+
+        var (success, error) = await ProductService.UpdateAsync(_product);
+        _saving = false;
+
+        if (!success)
+        {
+            _error = error;
+            return;
+        }
+
+        Navigation.NavigateTo("products");
+    }
+}
