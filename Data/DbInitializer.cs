@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using ProductCrud.Models;
 
 namespace ProductCrud.Data;
@@ -6,7 +7,8 @@ public static class DbInitializer
 {
     public static void Seed(AppDbContext db)
     {
-        db.Database.EnsureCreated();
+        // Use migrations (not EnsureCreated) so EF can track schema changes.
+        db.Database.Migrate();
 
         if (db.Categories.Any())
         {
