@@ -8,6 +8,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Book> Books => Set<Book>();
+    public DbSet<Test> Tests => Set<Test>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

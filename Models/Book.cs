@@ -23,4 +23,7 @@ public class Book
 
     [StringLength(40)]
     public string? Language { get; set; } = string.Empty;
+    [StringLength(40)]
+    public string? Price { get; set; } = string.Empty;
+
 }
